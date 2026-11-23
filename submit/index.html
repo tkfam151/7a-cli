@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Pair Everyone</title>
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<main>
+<h1>🎄 Pair everyone up</h1>
+<p class="sub">When every student has added their name on the <a href="../">main page</a>, press Submit. Each person gets someone random (never themselves). Students then see who they got using their name and password.</p>
+
+<section class="card" id="setupCard" style="display:none">
+  <h2>First, set a teacher password</h2>
+  <p>This stops students from pressing Submit. Do this before you share the link. It can only be set once.</p>
+  <form id="setup">
+    <label for="np">Teacher password</label><input id="np" type="password" required>
+    <button>Save teacher password</button>
+    <div class="msg" id="sm"></div>
+  </form>
+</section>
+
+<section class="card">
+  <h2>Signed up <span class="badge" id="count">0</span> <span class="badge" id="state"></span></h2>
+  <ul class="names" id="names"></ul>
+</section>
+
+<section class="card" id="pairCard">
+  <label for="admin">Teacher password</label><input id="admin" type="password">
+  <button class="big" id="submit">Submit &amp; pair everyone</button>
+  <div class="msg" id="m"></div>
+</section>
+</main>
+<script src="../config.js"></script>
+<script src="../app.js"></script>
+<script>
+if (checkConfigured()) {
+  const $ = (id) => document.getElementById(id);
+  let working = false;
+  async function refresh() {
+    try {
+      const s = await getState();
+      $("setupCard").style.display = s.admin ? "none" : "";
+      $("count").textContent = s.people.length;
+      $("state").textContent = s.pairs ? "Paired ✔" : "Not paired yet";
+      $("names").innerHTML = s.people.map((p) => "<li>" + esc(p.name) + "</li>").join("") || "<li>No one yet</li>";
+      if (!working) {
+        $("submit").disabled = !!s.pairs || !s.admin || s.people.length < 2;
+        $("submit").textContent = s.pairs ? "Everyone is paired ✔" : "Submit & pair everyone (" + s.people.length + ")";
+      }
+    } catch (e) { $("state").textContent = "Can't reach database"; }
+  }
+  $("setup").onsubmit = async (e) => {
+    e.preventDefault();
+    try { await setTeacherPassword($("np").value); say($("sm"), "Saved.", true); $("np").value = ""; refresh(); }
+    catch (err) { say($("sm"), err.message); }
+  };
+  $("submit").onclick = async () => {
+    if (!confirm("Pair everyone now? Sign-ups will close.")) return;
+    working = true;
+    busy($("submit"), true, "Pairing…");
+    try {
+      const n = await pairEveryone($("admin").value);
+      say($("m"), "Done! " + n + " students paired. Tell them to check the main page.", true);
+    } catch (err) { say($("m"), err.message); }
+    working = false;
+    busy($("submit"), false);
+    refresh();
+  };
+  refresh();
+  setInterval(refresh, 5000);
+}
+</script>
+</body>
+</html>

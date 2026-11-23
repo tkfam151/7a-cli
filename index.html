@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Class Secret Santa</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<main>
+<h1>🎁 Class Secret Santa</h1>
+<p class="sub">Add your name and make up a password. Once your teacher pairs everyone up, come back and type the same name and password to see who you're buying for.</p>
+
+<section class="card" id="joinCard">
+  <h2>1. Add your name</h2>
+  <form id="join">
+    <label for="jn">Your name</label><input id="jn" autocomplete="off" required maxlength="40">
+    <label for="jp">Make up a password (don't forget it!)</label><input id="jp" type="password" required>
+    <button>Add me</button>
+    <div class="msg" id="jm"></div>
+  </form>
+</section>
+
+<section class="card">
+  <h2>2. See who you got</h2>
+  <form id="reveal">
+    <label for="rn">Your name</label><input id="rn" autocomplete="off" required>
+    <label for="rp">Your password</label><input id="rp" type="password" required>
+    <button>Show my Secret Santa</button>
+    <div class="msg" id="rm"></div>
+  </form>
+</section>
+
+<section class="card">
+  <h2>Who's in <span class="badge" id="count">0</span> <span class="badge" id="state"></span></h2>
+  <ul class="names" id="names"></ul>
+</section>
+</main>
+<script src="config.js"></script>
+<script src="app.js"></script>
+<script>
+if (checkConfigured()) {
+  const $ = (id) => document.getElementById(id);
+  async function refresh() {
+    try {
+      const s = await getState();
+      $("count").textContent = s.people.length;
+      $("state").textContent = s.pairs ? "Paired ✔" : "Waiting for teacher";
+      $("names").innerHTML = s.people.map((p) => "<li>" + esc(p.name) + "</li>").join("") || "<li>No one yet</li>";
+      $("joinCard").style.display = s.pairs ? "none" : "";
+    } catch (e) { $("state").textContent = "Can't reach database"; }
+  }
+  $("join").onsubmit = async (e) => {
+    e.preventDefault();
+    const btn = e.target.querySelector("button");
+    busy(btn, true, "Adding…");
+    try {
+      const name = await joinSanta($("jn").value, $("jp").value);
+      say($("jm"), "You're in, " + name + "! Remember your password.", true);
+      $("jn").value = ""; $("jp").value = "";
+      refresh();
+    } catch (err) { say($("jm"), err.message); }
+    busy(btn, false);
+  };
+  $("reveal").onsubmit = async (e) => {
+    e.preventDefault();
+    const btn = e.target.querySelector("button");
+    busy(btn, true, "Checking…");
+    try {
+      const r = await revealSanta($("rn").value, $("rp").value);
+      if (!r.giftee) say($("rm"), "Hi " + r.name + ", you're signed up! Not paired yet, so check back after your teacher presses Submit.", true);
+      else {
+        $("rm").className = "msg";
+        $("rm").innerHTML = "Hi " + esc(r.name) + ", you are Secret Santa for:<div class='reveal'>🎅 " + esc(r.giftee) + "</div><small>Shh, keep it a secret!</small>";
+      }
+      $("rp").value = "";
+    } catch (err) { say($("rm"), err.message); }
+    busy(btn, false);
+  };
+  refresh();
+  setInterval(refresh, 5000);
+}
+</script>
+</body>
+</html>

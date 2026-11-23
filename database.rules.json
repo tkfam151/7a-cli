@@ -1,0 +1,17 @@
+{
+  "rules": {
+    ".read": true,
+    "people": {
+      "$id": {
+        ".write": "!data.exists() && !root.child('pairs').exists()",
+        ".validate": "newData.hasChildren(['name', 'pub', 'priv', 'salt', 'iv', 'at']) && newData.child('name').isString() && newData.child('name').val().length > 0 && newData.child('name').val().length <= 40"
+      }
+    },
+    "pairs": {
+      ".write": "!data.exists()"
+    },
+    "admin": {
+      ".write": "!data.exists()"
+    }
+  }
+}
