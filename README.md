@@ -1,38 +1,59 @@
-# Class Secret Santa
+# SISB 7A Classroom
 
-A Secret Santa website for a class that runs on **GitHub Pages**. Names are saved in a free **Firebase** database.
+A simple class website where the teacher posts announcements and students read and comment on them.
+The website runs on **GitHub Pages** (free). Accounts and posts are saved in **Supabase** (free).
 
-- **Main page**: students add their name and make up a password. After pairing, they come back with the same name and password to see who they're buying for.
-- **`/submit`**: the teacher's page. Press **Submit & pair everyone** once the whole class has joined. Nobody ever gets themselves.
+## Who logs in with what
 
-Each student's match is stored encrypted, so only the right password unlocks it. Even someone reading the database directly can't see who got whom.
+| Login | Who uses it | What it can do |
+|---|---|---|
+| `sisb` / `sisb7a` | Shared sign-up login for students | **Only** create new student accounts |
+| Each student's own account | Students | Read announcements, write class comments |
+| `tonkla` (you pick the password the first time) | Teacher / admin | Post and delete announcements, add/remove accounts, reset passwords, delete comments |
 
-## Setup (about 10 minutes, one time)
+## Setup (one time)
 
-### 1. Create the free database
-1. Go to <https://console.firebase.google.com> and sign in with a Google account.
-2. **Create a project**. Any name works; you can turn Google Analytics off.
-3. In the left menu, open **Build → Realtime Database → Create Database**. Pick any location and choose **Start in locked mode**.
-4. Open the **Rules** tab, replace everything with the contents of [`database.rules.json`](database.rules.json), and click **Publish**.
-5. On the **Data** tab, copy the URL at the top. It looks like `https://your-project-default-rtdb.firebaseio.com`.
+### 1. Create the free database (Supabase)
+1. Go to <https://supabase.com>, click **Start your project**, and sign in (signing in with GitHub is easiest).
+2. Click **New project**. Pick any name (e.g. `sisb7a`), make up a database password (you won't need it again), choose a region near you, and click **Create new project**. Wait about a minute.
+3. In the left menu, open **SQL Editor**. Open [`setup.sql`](setup.sql) from this repo, copy **all** of it, paste it in, and click **Run**. It should say *Success*.
 
-### 2. Connect the site
-Open [`config.js`](config.js) on GitHub (pencil icon to edit), paste the URL between the quotes, and commit:
-```js
-databaseURL: "https://your-project-default-rtdb.firebaseio.com",
-```
+### 2. Connect the website to the database
+1. In Supabase, click **Project Settings** (gear icon) in the left menu.
+   - Under **Data API**, copy the **Project URL** (looks like `https://abcdxyz.supabase.co`).
+   - Under **API Keys**, copy the **anon / public** key (or the **publishable** key, which starts with `sb_publishable_`).
+     **Don't** use the *service_role* or *secret* key.
+2. In this GitHub repo, open [`config.js`](config.js), click the ✏️ pencil to edit, paste both values between the quotes, and click **Commit changes**:
+   ```js
+   supabaseUrl: "https://abcdxyz.supabase.co",
+   supabaseKey: "paste-the-key-here",
+   ```
 
 ### 3. Turn on GitHub Pages
-In the repo, go to **Settings → Pages**. Under *Build and deployment*, choose **Deploy from a branch**, pick the branch and **/ (root)**, then **Save**. After a minute or two the site is live at:
-- Students: `https://<your-username>.github.io/<repo-name>/`
-- Teacher: `https://<your-username>.github.io/<repo-name>/submit/`
+1. In this repo, go to **Settings → Pages**.
+2. Under **Build and deployment** → **Source**, choose **Deploy from a branch**.
+3. Pick the branch with these files and the **/ (root)** folder, then click **Save**.
+4. Wait 1-2 minutes. The site will be at `https://<your-github-username>.github.io/<repo-name>/` (the Pages settings page shows the exact link).
 
-### 4. Set your teacher password
-Open the `/submit/` page **before sharing the link** and set a teacher password. It's needed to press Submit, and it can only be set once.
+### 4. Set your teacher password (do this before sharing the link!)
+Open the site and click **Teacher: set up the tonkla account** under the sign-in box. Choose your password.
+That link disappears once the password is set.
 
-## Fixing mistakes / starting over
-For safety, the website itself can't delete anything. Do it in the Firebase console on the **Realtime Database → Data** tab (hover an item and click the trash icon):
-- **Remove a wrongly typed name** (before pairing): delete that entry under `people`.
-- **Undo the pairing** (and reopen sign-ups): delete `pairs`.
-- **Forgot a student's password**: delete their entry under `people` and `pairs`, then redo the pairing.
-- **Start fresh next year**: delete everything.
+### 5. Share with the class
+Give students the website link and the sign-up login **sisb** / **sisb7a**. Each student:
+1. Signs in with `sisb` / `sisb7a`.
+2. Fills in their name, a username and a password, then clicks **Create account**.
+3. Clicks **Sign in with my new account** to see the announcements.
+
+## Everyday use
+- **Post**: sign in as `tonkla` → **Stream** → *Announce something to your class* → **Post**.
+- **Add an account yourself / remove a student / reset a forgotten password**: sign in as `tonkla` → **People**.
+- Students' pages check for new announcements every 30 seconds.
+
+## Good to know
+- Passwords are stored scrambled (hashed), and the database only allows the actions in the table above.
+- Anyone who knows `sisb` / `sisb7a` can create a student account. If someone makes a joke account, remove it from **People**.
+- Free Supabase projects **pause after about a week with no visits**. If the site says it can't connect, open your Supabase dashboard and click **Restore project**.
+- Forgot the `tonkla` password? In Supabase → **SQL Editor**, run
+  `update accounts set password_hash = null where username = 'tonkla';`
+  and the **Teacher: set up** link will appear on the sign-in page again.
